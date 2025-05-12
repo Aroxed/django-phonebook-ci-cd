@@ -5,6 +5,12 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:  # Allow manual triggers
+
+env:
+  PYTHON_VERSION: '3.11'
+  MONGODB_VERSION: 'latest'
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/phonebook
 
 jobs:
   test:
@@ -12,28 +18,47 @@ jobs:
     
     services:
       mongodb:
-        image: mongo:latest
+        image: mongo:${{ env.MONGODB_VERSION }}
         ports:
           - 27017:27017
         env:
           MONGO_INITDB_ROOT_USERNAME: testuser
           MONGO_INITDB_ROOT_PASSWORD: testpass
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip'
+    
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-django flake8 black
-
+        pip install pytest pytest-cov pytest-django flake8 black mypy
+    
+    - name: Run linting
+      run: |
+        flake8 .
+        black . --check
+        mypy .
+    
     - name: Run migrations
       run: |
         python manage.py migrate
@@ -44,17 +69,24 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        python -m pytest --cov=. --cov-report=xml
+        python -m pytest --cov=. --cov-report=xml --cov-report=term-missing
       env:
         MONGODB_URI: mongodb://testuser:testpass@localhost:27017/
         DJANGO_SECRET_KEY: test-secret-key
         DEBUG: True
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
+      continue-on-error: true  # Don't fail the workflow if Codecov upload fails
       with:
         file: ./coverage.xml
-        fail_ci_if_error: true
+        fail_ci_if_error: false  # Don't fail CI if Codecov upload fails
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true  # Show more detailed output
+        flags: unittests  # Add a flag to identify the coverage type
+        name: codecov-umbrella  # Name of the upload
+        xcode: false  # Disable Xcode coverage
+        yml: ./codecov.yml  # Use a custom configuration file
 
   build-and-push:
     needs: test
@@ -62,28 +94,31 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v3
     
     - name: Login to DockerHub
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     
     - name: Extract metadata
       id: meta
-      uses: docker/metadata-action@v4
+      uses: docker/metadata-action@v5
       with:
-        images: ${{ secrets.DOCKERHUB_USERNAME }}/phonebook
+        images: ${{ env.DOCKER_IMAGE }}
         tags: |
           type=raw,value=latest
-          type=sha,prefix=,suffix=,format=short
+          type=ref,event=branch
+          type=ref,event=tag
+          type=sha,format=short
+          type=raw,value=${{ github.run_number }}
     
     - name: Build and push
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v5
       with:
         context: .
         push: true
@@ -91,14 +126,21 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+        provenance: true
+        sbom: true
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    environment: production
     
     steps:
     - name: Deploy to production
       run: |
         echo "Deployment would happen here"
-        # Add your deployment steps here 
+        # Add your deployment steps here
+      env:
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        # Add other deployment-specific secrets here 
