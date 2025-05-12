@@ -26,7 +26,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-        cache: 'pip'
     
     - name: Install dependencies
       run: |
@@ -45,7 +44,7 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    #if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
     - uses: actions/checkout@v4
@@ -61,6 +60,4 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/phonebook:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max 
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/phonebook:latest 
