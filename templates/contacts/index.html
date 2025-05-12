@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Phonebook - Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Add New Contact</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'get_contacts' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Contact</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <h2>Contacts</h2>
+        {% if contacts %}
+            {% for contact in contacts %}
+                <div class="card contact-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ contact.name }}</h5>
+                        <p class="card-text">{{ contact.phone }}</p>
+                        <div class="actions">
+                            <a href="{% url 'contact_detail' contact.name %}" class="btn btn-info btn-sm">View</a>
+                            <form method="post" action="{% url 'contact_detail' contact.name %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="_method" value="DELETE">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No contacts found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

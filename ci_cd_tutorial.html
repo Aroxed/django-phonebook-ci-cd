@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD Tutorial for Python Applications</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .container {
+            margin-bottom: 30px;
+        }
+        .note {
+            background-color: #e7f3fe;
+            border-left: 4px solid #2196F3;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>CI/CD Tutorial for Python Applications</h1>
+    
+    <div class="container">
+        <h2>1. Introduction to CI/CD</h2>
+        <p>Continuous Integration (CI) and Continuous Deployment (CD) are development practices that help teams deliver code changes more frequently and reliably.</p>
+        
+        <h3>Key Concepts:</h3>
+        <ul>
+            <li><strong>Continuous Integration:</strong> Automatically building and testing code changes</li>
+            <li><strong>Continuous Deployment:</strong> Automatically deploying code changes to production</li>
+            <li><strong>Continuous Delivery:</strong> Ensuring code is always in a deployable state</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <h2>2. Essential CI/CD Tools</h2>
+        
+        <h3>2.1 Version Control</h3>
+        <ul>
+            <li>Git</li>
+            <li>GitHub/GitLab/Bitbucket</li>
+        </ul>
+
+        <h3>2.2 CI/CD Platforms</h3>
+        <ul>
+            <li>GitHub Actions</li>
+            <li>GitLab CI</li>
+            <li>Jenkins</li>
+            <li>CircleCI</li>
+        </ul>
+
+        <h3>2.3 Containerization</h3>
+        <ul>
+            <li>Docker</li>
+            <li>Docker Compose</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <h2>3. Python Application CI/CD Pipeline</h2>
+        
+        <h3>3.1 Basic Pipeline Structure</h3>
+        <pre><code>name: Python CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run tests
+      run: |
+        python -m pytest</code></pre>
+
+        <h3>3.2 Docker Integration</h3>
+        <pre><code>name: Docker CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build Docker image
+      run: docker build -t myapp:latest .
+    - name: Push to Docker Hub
+      run: |
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker push myapp:latest</code></pre>
+    </div>
+
+    <div class="container">
+        <h2>4. Best Practices</h2>
+        <ul>
+            <li>Keep pipelines fast and efficient</li>
+            <li>Use caching for dependencies</li>
+            <li>Implement proper testing strategies</li>
+            <li>Use environment variables for sensitive data</li>
+            <li>Implement proper versioning</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <h2>5. Common Issues and Solutions</h2>
+        <div class="note">
+            <h3>Dependency Issues</h3>
+            <p>Use requirements.txt or poetry.lock for consistent dependency management</p>
+        </div>
+        <div class="note">
+            <h3>Environment Variables</h3>
+            <p>Always use secrets management for sensitive data</p>
+        </div>
+    </div>
+</body>
+</html> 
